@@ -1,0 +1,2 @@
+# RunThru serves this folder of each PR's commit (no build step) and films the change.
+static: app
