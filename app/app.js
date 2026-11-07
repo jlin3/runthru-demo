@@ -30,8 +30,18 @@
   const addDialog = document.getElementById("add-dialog");
   const addForm = document.getElementById("add-form");
   const addError = document.getElementById("add-error");
+  const searchInput = document.getElementById("search-input");
+  const filterGroup = document.getElementById("status-filters");
+  const emptyState = document.getElementById("empty-state");
+  const emptyTitle = document.getElementById("empty-title");
+  const emptyHint = document.getElementById("empty-hint");
+  const clearFiltersButton = document.getElementById("clear-filters");
+
+  const FILTERS = [{ id: "all", label: "All" }, ...STATUSES];
 
   let books = loadBooks();
+  let query = "";
+  let activeFilter = "all";
 
   /* ---------- Storage ---------- */
 
@@ -127,6 +137,63 @@
     return `${slug || "book"}-${Date.now().toString(36)}`;
   }
 
+  /* ---------- Search + filters ---------- */
+
+  function matchesQuery(book) {
+    if (!query) return true;
+    const needle = query.toLowerCase();
+    return book.title.toLowerCase().includes(needle) || book.author.toLowerCase().includes(needle);
+  }
+
+  function isVisible(book) {
+    return (activeFilter === "all" || book.status === activeFilter) && matchesQuery(book);
+  }
+
+  // Escapes text and wraps the part that matches the search in <mark>.
+  function highlight(text) {
+    if (!query) return escapeHtml(text);
+    const start = text.toLowerCase().indexOf(query.toLowerCase());
+    if (start === -1) return escapeHtml(text);
+    const end = start + query.length;
+    return `${escapeHtml(text.slice(0, start))}<mark>${escapeHtml(text.slice(start, end))}</mark>${escapeHtml(text.slice(end))}`;
+  }
+
+  function renderFilters() {
+    const searched = books.filter(matchesQuery);
+    filterGroup.innerHTML = FILTERS.map((filter) => {
+      const count = filter.id === "all" ? searched.length : searched.filter((b) => b.status === filter.id).length;
+      const pressed = filter.id === activeFilter;
+      return `<button type="button" class="chip" data-filter="${filter.id}" aria-pressed="${pressed}">
+          ${filter.label}<span class="chip-count">${count}</span>
+        </button>`;
+    }).join("");
+  }
+
+  function renderEmptyState(visibleCount) {
+    emptyState.hidden = visibleCount > 0;
+    grid.hidden = visibleCount === 0;
+    if (visibleCount > 0) return;
+
+    const label = FILTERS.find((f) => f.id === activeFilter).label;
+    if (query) {
+      emptyTitle.textContent = `No books match “${query}”`;
+      emptyHint.textContent =
+        activeFilter === "all"
+          ? "Try a different title or author."
+          : `Nothing in ${label} matches. Try another status or clear the search.`;
+    } else {
+      emptyTitle.textContent = `Nothing in ${label} yet`;
+      emptyHint.textContent = "Change a book's status and it will show up here.";
+    }
+  }
+
+  function clearFilters() {
+    query = "";
+    activeFilter = "all";
+    searchInput.value = "";
+    render();
+  }
+
   /* ---------- Rendering ---------- */
 
   function createCard(book) {
@@ -146,8 +213,8 @@
         <span class="cover-author">${escapeHtml(lastName(book.author))}</span>
       </div>
       <div class="book-body">
-        <h3 class="book-title">${title}</h3>
-        <p class="book-author">${escapeHtml(book.author)}</p>
+        <h3 class="book-title">${highlight(book.title)}</h3>
+        <p class="book-author">${highlight(book.author)}</p>
         <div class="book-footer">
           <span class="status" data-status="${book.status}">
             <select data-action="status" aria-label="Status of ${title}">${options}</select>
@@ -160,7 +227,10 @@
   }
 
   function render() {
-    grid.replaceChildren(...books.map(createCard));
+    const visible = books.filter(isVisible);
+    grid.replaceChildren(...visible.map(createCard));
+    renderEmptyState(visible.length);
+    renderFilters();
     renderSummary();
   }
 
@@ -187,8 +257,17 @@
     book.status = status;
     saveBooks();
 
+    if (!isVisible(book)) {
+      // The book no longer fits the active filter: let it fade out, then redraw.
+      const current = grid.querySelector(`[data-id="${CSS.escape(book.id)}"]`);
+      current?.classList.add("book--leaving");
+      setTimeout(render, 220);
+      return;
+    }
+
     const card = replaceCard(book, "book--changed");
     card?.querySelector('[data-action="status"]')?.focus();
+    renderFilters();
     renderSummary();
   }
 
@@ -197,10 +276,14 @@
     books.unshift(book);
     saveBooks();
 
-    const card = createCard(book);
-    card.classList.add("book--new");
-    grid.prepend(card);
-    renderSummary();
+    // Make sure the new book is on screen, even if a search or filter would hide it.
+    if (!isVisible(book)) {
+      query = "";
+      activeFilter = "all";
+      searchInput.value = "";
+    }
+    render();
+    grid.querySelector(`[data-id="${CSS.escape(book.id)}"]`)?.classList.add("book--new");
   }
 
   /* ---------- Events ---------- */
@@ -209,6 +292,41 @@
     const select = event.target.closest('[data-action="status"]');
     if (!select) return;
     setStatus(select.closest(".book").dataset.id, select.value);
+  });
+
+  searchInput.addEventListener("input", () => {
+    query = searchInput.value.trim();
+    render();
+  });
+
+  searchInput.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && searchInput.value) {
+      event.preventDefault();
+      searchInput.value = "";
+      query = "";
+      render();
+    }
+  });
+
+  filterGroup.addEventListener("click", (event) => {
+    const chip = event.target.closest("[data-filter]");
+    if (!chip || chip.dataset.filter === activeFilter) return;
+    activeFilter = chip.dataset.filter;
+    render();
+    filterGroup.querySelector(`[data-filter="${activeFilter}"]`)?.focus();
+  });
+
+  clearFiltersButton.addEventListener("click", () => {
+    clearFilters();
+    searchInput.focus();
+  });
+
+  // Press "/" anywhere to jump to search.
+  document.addEventListener("keydown", (event) => {
+    if (event.key !== "/" || event.metaKey || event.ctrlKey || event.altKey) return;
+    if (event.target.closest("input, textarea, select, [contenteditable]") || document.querySelector("dialog[open]")) return;
+    event.preventDefault();
+    searchInput.focus();
   });
 
   addButton.addEventListener("click", () => {
