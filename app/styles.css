@@ -152,6 +152,76 @@ svg {
   gap: 14px;
 }
 
+/* ---------- Yearly goal ring ---------- */
+
+.goal {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 14px 4px 4px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.goal-ring {
+  width: 40px;
+  height: 40px;
+  transform: rotate(-90deg);
+}
+
+.goal-ring circle {
+  fill: none;
+  stroke-width: 5;
+}
+
+.goal-track {
+  stroke: var(--accent-soft);
+}
+
+.goal-fill {
+  stroke: var(--accent);
+  stroke-linecap: round;
+  stroke-dasharray: 100;
+  stroke-dashoffset: 100;
+  transition: stroke-dashoffset 0.9s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.goal-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.15;
+}
+
+.goal-text strong {
+  font-size: 15px;
+  font-weight: 750;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+.goal-text span {
+  color: var(--muted);
+  font-size: 12.5px;
+}
+
+.goal--bump .goal-text strong {
+  animation: goal-bump 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@keyframes goal-bump {
+  40% {
+    color: var(--accent);
+    transform: scale(1.12);
+  }
+}
+
+.goal-text strong {
+  display: inline-block;
+  transform-origin: left center;
+}
+
 /* ---------- Buttons ---------- */
 
 .button {
@@ -335,6 +405,106 @@ main.container {
   gap: 8px;
   margin-top: auto;
   padding-top: 14px;
+}
+
+/* ---------- Reading progress ---------- */
+
+.progress {
+  margin-top: 14px;
+}
+
+.progress-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 7px;
+  color: var(--ink-2);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.progress-meta strong {
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.progress-bar-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.progress-percent {
+  min-width: 34px;
+  color: var(--reading);
+  font-size: 12.5px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.progress-track {
+  flex: 1;
+  height: 7px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--reading-soft);
+}
+
+.progress-fill {
+  width: var(--progress, 0%);
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--reading) 70%, var(--surface)), var(--reading));
+  transition: width 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.progress--done .progress-fill {
+  background: var(--finished);
+}
+
+.stepper {
+  display: inline-flex;
+  margin-left: auto;
+  border: 1px solid var(--line-strong);
+  border-radius: 9px;
+  overflow: hidden;
+}
+
+.stepper button {
+  height: 28px;
+  min-width: 40px;
+  padding: 0 9px;
+  border: 0;
+  background: var(--surface);
+  color: var(--ink-2);
+  font-size: 13px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.stepper button + button {
+  border-left: 1px solid var(--line-strong);
+}
+
+.stepper button:hover:not(:disabled) {
+  background: var(--surface-2);
+  color: var(--ink);
+}
+
+.stepper button:disabled {
+  color: var(--line-strong);
+  cursor: default;
+}
+
+.book-note {
+  margin-left: auto;
+  color: var(--muted);
+  font-size: 13px;
+  white-space: nowrap;
 }
 
 /* ---------- Generated covers ---------- */
@@ -567,6 +737,12 @@ main.container {
   display: none;
 }
 
+.field-row {
+  display: grid;
+  grid-template-columns: 1fr 120px;
+  gap: 12px;
+}
+
 .dialog-footer {
   display: flex;
   justify-content: flex-end;
@@ -588,6 +764,23 @@ main.container {
   .shelf-head {
     flex-direction: column;
     gap: 4px;
+  }
+
+  .header-inner {
+    gap: 10px;
+  }
+
+  .header-actions {
+    gap: 8px;
+  }
+
+  .brand-name,
+  .goal-text span {
+    display: none;
+  }
+
+  .goal {
+    padding-right: 12px;
   }
 }
 

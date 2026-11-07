@@ -27,6 +27,16 @@
         </a>
 
         <div class="header-actions">
+          <div class="goal" id="goal" aria-live="polite">
+            <svg class="goal-ring" viewBox="0 0 44 44" aria-hidden="true">
+              <circle class="goal-track" cx="22" cy="22" r="18" />
+              <circle class="goal-fill" id="goal-fill" cx="22" cy="22" r="18" pathLength="100" />
+            </svg>
+            <p class="goal-text">
+              <strong id="goal-count">0 of 24</strong>
+              <span>books this year</span>
+            </p>
+          </div>
           <button type="button" class="button button--primary" id="add-book-button">
             <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 4v12M4 10h12" /></svg>
             Add book
@@ -63,13 +73,19 @@
           <label for="add-author">Author</label>
           <input id="add-author" name="author" type="text" autocomplete="off" required placeholder="e.g. Ursula K. Le Guin" />
         </div>
-        <div class="field">
-          <label for="add-status">Status</label>
-          <select id="add-status" name="status">
-            <option value="want">Want to read</option>
-            <option value="reading">Reading</option>
-            <option value="finished">Finished</option>
-          </select>
+        <div class="field-row">
+          <div class="field">
+            <label for="add-status">Status</label>
+            <select id="add-status" name="status">
+              <option value="want">Want to read</option>
+              <option value="reading">Reading</option>
+              <option value="finished">Finished</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="add-pages">Pages</label>
+            <input id="add-pages" name="pages" type="number" inputmode="numeric" min="1" max="5000" placeholder="300" />
+          </div>
         </div>
         <p class="form-error" id="add-error" role="alert"></p>
 
