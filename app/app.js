@@ -4,7 +4,11 @@
 (() => {
   "use strict";
 
-  const STORAGE_KEY = "shelf.books.v1";
+  // v2 adds page counts and finish dates.
+  const STORAGE_KEY = "shelf.books.v2";
+  const YEARLY_GOAL = 24;
+  const PAGE_STEP = 10;
+  const THIS_YEAR = new Date().getFullYear();
 
   const STATUSES = [
     { id: "want", label: "Want to read" },
@@ -13,15 +17,15 @@
   ];
 
   const SEED_BOOKS = [
-    { id: "piranesi", title: "Piranesi", author: "Susanna Clarke", status: "reading" },
-    { id: "braiding-sweetgrass", title: "Braiding Sweetgrass", author: "Robin Wall Kimmerer", status: "reading" },
-    { id: "thinking-in-systems", title: "Thinking in Systems", author: "Donella H. Meadows", status: "reading" },
-    { id: "left-hand-of-darkness", title: "The Left Hand of Darkness", author: "Ursula K. Le Guin", status: "finished" },
-    { id: "project-hail-mary", title: "Project Hail Mary", author: "Andy Weir", status: "finished" },
-    { id: "tomorrow-x3", title: "Tomorrow, and Tomorrow, and Tomorrow", author: "Gabrielle Zevin", status: "finished" },
-    { id: "the-overstory", title: "The Overstory", author: "Richard Powers", status: "want" },
-    { id: "remains-of-the-day", title: "The Remains of the Day", author: "Kazuo Ishiguro", status: "want" },
-    { id: "the-dispossessed", title: "The Dispossessed", author: "Ursula K. Le Guin", status: "want" },
+    { id: "piranesi", title: "Piranesi", author: "Susanna Clarke", status: "reading", pages: 272, currentPage: 148 },
+    { id: "braiding-sweetgrass", title: "Braiding Sweetgrass", author: "Robin Wall Kimmerer", status: "reading", pages: 391, currentPage: 96 },
+    { id: "thinking-in-systems", title: "Thinking in Systems", author: "Donella H. Meadows", status: "reading", pages: 240, currentPage: 220 },
+    { id: "left-hand-of-darkness", title: "The Left Hand of Darkness", author: "Ursula K. Le Guin", status: "finished", pages: 304, finishedOn: `${THIS_YEAR}-02-11` },
+    { id: "project-hail-mary", title: "Project Hail Mary", author: "Andy Weir", status: "finished", pages: 476, finishedOn: `${THIS_YEAR}-05-02` },
+    { id: "tomorrow-x3", title: "Tomorrow, and Tomorrow, and Tomorrow", author: "Gabrielle Zevin", status: "finished", pages: 401, finishedOn: `${THIS_YEAR}-08-19` },
+    { id: "the-overstory", title: "The Overstory", author: "Richard Powers", status: "want", pages: 502 },
+    { id: "remains-of-the-day", title: "The Remains of the Day", author: "Kazuo Ishiguro", status: "want", pages: 245 },
+    { id: "the-dispossessed", title: "The Dispossessed", author: "Ursula K. Le Guin", status: "want", pages: 387 },
   ];
 
   const grid = document.getElementById("book-grid");
@@ -30,8 +34,11 @@
   const addDialog = document.getElementById("add-dialog");
   const addForm = document.getElementById("add-form");
   const addError = document.getElementById("add-error");
+  const goal = document.getElementById("goal");
+  const goalFill = document.getElementById("goal-fill");
+  const goalCount = document.getElementById("goal-count");
 
-  let books = loadBooks();
+  let books = loadBooks().map(withProgress);
 
   /* ---------- Storage ---------- */
 
@@ -56,7 +63,33 @@
     }
   }
 
+  // Fill in reading-progress fields so every book can be rendered safely.
+  function withProgress(book) {
+    const pages = Math.max(1, Math.round(Number(book.pages) || 300));
+    const finished = book.status === "finished";
+    const currentPage = finished ? pages : clamp(Math.round(Number(book.currentPage) || 0), 0, pages);
+    return { ...book, pages, currentPage, finishedOn: finished ? book.finishedOn || today() : null };
+  }
+
   /* ---------- Helpers ---------- */
+
+  function clamp(value, min, max) {
+    return Math.min(max, Math.max(min, value));
+  }
+
+  function today() {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  }
+
+  function formatDay(isoDate) {
+    const [y, m, d] = isoDate.split("-").map(Number);
+    return new Date(y, m - 1, d).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  }
+
+  function percentRead(book) {
+    return Math.round((book.currentPage / book.pages) * 100);
+  }
 
   function escapeHtml(value) {
     return String(value)
@@ -127,6 +160,84 @@
     return `${slug || "book"}-${Date.now().toString(36)}`;
   }
 
+  /* ---------- Reading progress ---------- */
+
+  function progressMarkup(book) {
+    const pct = percentRead(book);
+    return `
+      <div class="progress" data-role="progress">
+        <div class="progress-meta">
+          <span>Page <strong data-role="current-page">${book.currentPage}</strong> of ${book.pages}</span>
+          ${stepperMarkup(book)}
+        </div>
+        <div class="progress-bar-row">
+          <div class="progress-track" role="progressbar" aria-label="Reading progress for ${escapeHtml(book.title)}"
+            aria-valuemin="0" aria-valuemax="${book.pages}" aria-valuenow="${book.currentPage}"
+            aria-valuetext="Page ${book.currentPage} of ${book.pages}">
+            <div class="progress-fill" style="--progress: ${pct}%"></div>
+          </div>
+          <span class="progress-percent" data-role="percent">${pct}%</span>
+        </div>
+      </div>
+    `;
+  }
+
+  function stepperMarkup(book) {
+    const title = escapeHtml(book.title);
+    return `
+      <div class="stepper">
+        <button type="button" data-action="pages" data-delta="-${PAGE_STEP}" aria-label="Back ${PAGE_STEP} pages on ${title}"
+          ${book.currentPage <= 0 ? "disabled" : ""}>−${PAGE_STEP}</button>
+        ${book.currentPage >= book.pages
+          ? `<button type="button" class="finish" data-action="finish" aria-label="Mark ${title} as finished">Finish</button>`
+          : `<button type="button" data-action="pages" data-delta="${PAGE_STEP}" aria-label="Forward ${PAGE_STEP} pages on ${title}">+${PAGE_STEP}</button>`}
+      </div>
+    `;
+  }
+
+  // Update the bar in place (no re-render) so the width change animates.
+  function updateProgress(card, book) {
+    const pct = percentRead(book);
+    card.querySelector('[data-role="current-page"]').textContent = book.currentPage;
+    card.querySelector('[data-role="percent"]').textContent = `${pct}%`;
+    card.querySelector(".progress-fill").style.setProperty("--progress", `${pct}%`);
+
+    const bar = card.querySelector('[role="progressbar"]');
+    bar.setAttribute("aria-valuenow", book.currentPage);
+    bar.setAttribute("aria-valuetext", `Page ${book.currentPage} of ${book.pages}`);
+
+    // At the last page, "+10" becomes "Mark as finished" (and back again if you step back).
+    card.querySelector(".stepper").outerHTML = stepperMarkup(book);
+    card.querySelector('[data-role="progress"]').classList.toggle("progress--done", book.currentPage >= book.pages);
+  }
+
+  function changePages(id, delta) {
+    const book = books.find((b) => b.id === id);
+    if (!book || book.status !== "reading") return;
+    book.currentPage = clamp(book.currentPage + delta, 0, book.pages);
+    saveBooks();
+
+    const card = grid.querySelector(`[data-id="${CSS.escape(id)}"]`);
+    if (card) updateProgress(card, book);
+
+    if (book.currentPage >= book.pages) card?.querySelector('[data-action="finish"]')?.focus();
+  }
+
+  function renderGoal({ animate = false } = {}) {
+    const done = books.filter((b) => b.status === "finished" && b.finishedOn?.startsWith(String(THIS_YEAR))).length;
+    const previous = Number(goal.dataset.count ?? done);
+    goal.dataset.count = done;
+    goalCount.textContent = `${done} of ${YEARLY_GOAL}`;
+    goalFill.style.strokeDashoffset = String(100 - Math.min(100, (done / YEARLY_GOAL) * 100));
+    goal.setAttribute("aria-label", `Yearly goal: ${done} of ${YEARLY_GOAL} books finished in ${THIS_YEAR}`);
+
+    if (animate && done > previous) {
+      goal.classList.remove("goal--bump");
+      void goal.offsetWidth; // restart the animation
+      goal.classList.add("goal--bump");
+    }
+  }
+
   /* ---------- Rendering ---------- */
 
   function createCard(book) {
@@ -148,11 +259,13 @@
       <div class="book-body">
         <h3 class="book-title">${title}</h3>
         <p class="book-author">${escapeHtml(book.author)}</p>
+        ${book.status === "reading" ? progressMarkup(book) : ""}
         <div class="book-footer">
           <span class="status" data-status="${book.status}">
             <select data-action="status" aria-label="Status of ${title}">${options}</select>
             <svg viewBox="0 0 12 12" aria-hidden="true"><path d="M3 4.5l3 3 3-3" /></svg>
           </span>
+          ${book.status === "finished" && book.finishedOn ? `<time class="book-note" datetime="${book.finishedOn}">${formatDay(book.finishedOn)}</time>` : ""}
         </div>
       </div>
     `;
@@ -162,6 +275,7 @@
   function render() {
     grid.replaceChildren(...books.map(createCard));
     renderSummary();
+    renderGoal();
   }
 
   function renderSummary() {
@@ -184,16 +298,25 @@
   function setStatus(id, status) {
     const book = books.find((b) => b.id === id);
     if (!book || book.status === status) return;
+    const previous = book.status;
     book.status = status;
+    if (status === "finished") {
+      book.currentPage = book.pages;
+      book.finishedOn = today();
+    } else {
+      book.finishedOn = null;
+      if (previous === "finished") book.currentPage = 0;
+    }
     saveBooks();
 
     const card = replaceCard(book, "book--changed");
     card?.querySelector('[data-action="status"]')?.focus();
     renderSummary();
+    renderGoal({ animate: true });
   }
 
-  function addBook({ title, author, status }) {
-    const book = { id: newId(title), title, author, status };
+  function addBook({ title, author, status, pages }) {
+    const book = withProgress({ id: newId(title), title, author, status, pages, currentPage: 0 });
     books.unshift(book);
     saveBooks();
 
@@ -201,6 +324,7 @@
     card.classList.add("book--new");
     grid.prepend(card);
     renderSummary();
+    renderGoal({ animate: true });
   }
 
   /* ---------- Events ---------- */
@@ -209,6 +333,14 @@
     const select = event.target.closest('[data-action="status"]');
     if (!select) return;
     setStatus(select.closest(".book").dataset.id, select.value);
+  });
+
+  grid.addEventListener("click", (event) => {
+    const finish = event.target.closest('[data-action="finish"]');
+    if (finish) return setStatus(finish.closest(".book").dataset.id, "finished");
+    const button = event.target.closest('[data-action="pages"]');
+    if (!button) return;
+    changePages(button.closest(".book").dataset.id, Number(button.dataset.delta));
   });
 
   addButton.addEventListener("click", () => {
@@ -228,6 +360,7 @@
     const title = String(data.get("title") || "").trim();
     const author = String(data.get("author") || "").trim();
     const status = String(data.get("status") || "want");
+    const pages = Number(data.get("pages")) || 300;
 
     if (!title || !author) {
       addError.textContent = !title ? "Give the book a title." : "Who wrote it? Add an author.";
@@ -235,7 +368,7 @@
       return;
     }
 
-    addBook({ title, author, status });
+    addBook({ title, author, status, pages });
     addDialog.close();
   });
 
