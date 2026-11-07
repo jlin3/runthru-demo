@@ -40,6 +40,14 @@
         <div class="shelf-head">
           <h1 id="shelf-heading">Your shelf</h1>
           <p class="shelf-summary" id="shelf-summary" aria-live="polite"></p>
+          <label class="sort">
+            <span>Sort by</span>
+            <select id="sort" aria-label="Sort books">
+              <option value="added">Recently added</option>
+              <option value="title">Title</option>
+              <option value="author">Author</option>
+            </select>
+          </label>
         </div>
 
         <div class="book-grid" id="book-grid" aria-label="Books"></div>
