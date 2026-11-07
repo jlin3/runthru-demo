@@ -792,3 +792,15 @@ main.container {
     transition-duration: 0.01ms !important;
   }
 }
+
+.stepper button.finish {
+  background: var(--accent);
+  color: #fff;
+  padding: 0 12px;
+  white-space: nowrap;
+}
+
+.stepper button.finish:hover {
+  background: var(--accent-strong);
+  color: #fff;
+}

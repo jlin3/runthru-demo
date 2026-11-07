@@ -188,8 +188,9 @@
       <div class="stepper">
         <button type="button" data-action="pages" data-delta="-${PAGE_STEP}" aria-label="Back ${PAGE_STEP} pages on ${title}"
           ${book.currentPage <= 0 ? "disabled" : ""}>−${PAGE_STEP}</button>
-        <button type="button" data-action="pages" data-delta="${PAGE_STEP}" aria-label="Forward ${PAGE_STEP} pages on ${title}"
-          ${book.currentPage >= book.pages ? "disabled" : ""}>+${PAGE_STEP}</button>
+        ${book.currentPage >= book.pages
+          ? `<button type="button" class="finish" data-action="finish" aria-label="Mark ${title} as finished">Finish</button>`
+          : `<button type="button" data-action="pages" data-delta="${PAGE_STEP}" aria-label="Forward ${PAGE_STEP} pages on ${title}">+${PAGE_STEP}</button>`}
       </div>
     `;
   }
@@ -205,8 +206,8 @@
     bar.setAttribute("aria-valuenow", book.currentPage);
     bar.setAttribute("aria-valuetext", `Page ${book.currentPage} of ${book.pages}`);
 
-    card.querySelector('[data-delta^="-"]').disabled = book.currentPage <= 0;
-    card.querySelector('[data-delta]:not([data-delta^="-"])').disabled = book.currentPage >= book.pages;
+    // At the last page, "+10" becomes "Mark as finished" (and back again if you step back).
+    card.querySelector(".stepper").outerHTML = stepperMarkup(book);
     card.querySelector('[data-role="progress"]').classList.toggle("progress--done", book.currentPage >= book.pages);
   }
 
@@ -219,12 +220,7 @@
     const card = grid.querySelector(`[data-id="${CSS.escape(id)}"]`);
     if (card) updateProgress(card, book);
 
-    // Reached the last page: let the bar fill, then move the book to Finished.
-    if (book.currentPage >= book.pages) {
-      setTimeout(() => {
-        if (book.status === "reading" && book.currentPage >= book.pages) setStatus(id, "finished");
-      }, 700);
-    }
+    if (book.currentPage >= book.pages) card?.querySelector('[data-action="finish"]')?.focus();
   }
 
   function renderGoal({ animate = false } = {}) {
@@ -340,6 +336,8 @@
   });
 
   grid.addEventListener("click", (event) => {
+    const finish = event.target.closest('[data-action="finish"]');
+    if (finish) return setStatus(finish.closest(".book").dataset.id, "finished");
     const button = event.target.closest('[data-action="pages"]');
     if (!button) return;
     changePages(button.closest(".book").dataset.id, Number(button.dataset.delta));
