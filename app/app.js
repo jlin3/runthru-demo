@@ -30,8 +30,24 @@
   const addDialog = document.getElementById("add-dialog");
   const addForm = document.getElementById("add-form");
   const addError = document.getElementById("add-error");
+  const shareDialog = document.getElementById("share-dialog");
+  const shareCard = document.getElementById("share-card");
+  const shareCover = document.getElementById("share-cover");
+  const shareCardStatus = document.getElementById("share-card-status");
+  const shareCardTitle = document.getElementById("share-card-title");
+  const shareCardAuthor = document.getElementById("share-card-author");
+  const shareCardNote = document.getElementById("share-card-note");
+  const shareNote = document.getElementById("share-note");
+  const shareNoteCount = document.getElementById("share-note-count");
+  const shareLink = document.getElementById("share-link");
+  const copyButton = document.getElementById("copy-link");
+  const copyStatus = document.getElementById("copy-status");
+
+  const SHARE_STATUS_LABELS = { want: "On my list", reading: "Currently reading", finished: "Just finished" };
+  const EMPTY_NOTE = "Add a note and it will appear here.";
 
   let books = loadBooks();
+  let copyResetTimer = 0;
 
   /* ---------- Storage ---------- */
 
@@ -153,6 +169,9 @@
             <select data-action="status" aria-label="Status of ${title}">${options}</select>
             <svg viewBox="0 0 12 12" aria-hidden="true"><path d="M3 4.5l3 3 3-3" /></svg>
           </span>
+          <button type="button" class="share-button" data-action="share" aria-label="Share ${title}" title="Share">
+            <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 12.5V3M6.5 6.5L10 3l3.5 3.5M5.5 9.5H5A1.5 1.5 0 003.5 11v4.5A1.5 1.5 0 005 17h10a1.5 1.5 0 001.5-1.5V11A1.5 1.5 0 0015 9.5h-.5" /></svg>
+          </button>
         </div>
       </div>
     `;
@@ -203,6 +222,86 @@
     renderSummary();
   }
 
+  /* ---------- Share ---------- */
+
+  function bookLink(book) {
+    return `${location.origin}${location.pathname}#book=${encodeURIComponent(book.id)}`;
+  }
+
+  function renderShareNote() {
+    const note = shareNote.value.trim();
+    shareCardNote.textContent = note || EMPTY_NOTE;
+    shareCardNote.classList.toggle("is-empty", !note);
+    shareNoteCount.textContent = `${shareNote.value.length} / ${shareNote.maxLength}`;
+  }
+
+  function resetCopyButton() {
+    clearTimeout(copyResetTimer);
+    copyButton.classList.remove("is-copied");
+    copyButton.querySelector(".copy-label").textContent = "Copy link";
+    copyStatus.textContent = "";
+  }
+
+  function openShare(id) {
+    const book = books.find((b) => b.id === id);
+    if (!book) return;
+
+    shareCard.setAttribute("style", coverStyle(book.title));
+    shareCover.setAttribute("style", coverStyle(book.title));
+    shareCover.querySelector(".cover-title").textContent = book.title;
+    shareCover.querySelector(".cover-author").textContent = lastName(book.author);
+    shareCardStatus.textContent = SHARE_STATUS_LABELS[book.status] || "";
+    shareCardTitle.textContent = book.title;
+    shareCardAuthor.textContent = book.author;
+
+    shareNote.value = "";
+    shareLink.value = bookLink(book);
+    renderShareNote();
+    resetCopyButton();
+
+    shareDialog.showModal();
+    shareNote.focus();
+  }
+
+  async function copyText(text) {
+    try {
+      await navigator.clipboard.writeText(text);
+      return true;
+    } catch {
+      // Clipboard API can be blocked (permissions, insecure context): fall back to a selection copy.
+      shareLink.select();
+      try {
+        return document.execCommand("copy");
+      } catch {
+        return false;
+      }
+    }
+  }
+
+  async function copyShareLink() {
+    const copied = await copyText(shareLink.value);
+    clearTimeout(copyResetTimer);
+    if (copied) {
+      copyButton.classList.add("is-copied");
+      copyButton.querySelector(".copy-label").textContent = "Link copied";
+      copyStatus.textContent = "Link copied to your clipboard.";
+      copyResetTimer = setTimeout(resetCopyButton, 2400);
+    } else {
+      shareLink.select();
+      copyStatus.textContent = "Couldn't copy automatically. The link is selected, so copy it with your keyboard.";
+    }
+  }
+
+  // Opening a shared link (…#book=piranesi) scrolls to that book and highlights it.
+  function highlightLinkedBook() {
+    const match = location.hash.match(/^#book=(.+)$/);
+    if (!match) return;
+    const card = grid.querySelector(`[data-id="${CSS.escape(decodeURIComponent(match[1]))}"]`);
+    if (!card) return;
+    card.scrollIntoView({ block: "center" });
+    card.classList.add("book--changed");
+  }
+
   /* ---------- Events ---------- */
 
   grid.addEventListener("change", (event) => {
@@ -210,6 +309,21 @@
     if (!select) return;
     setStatus(select.closest(".book").dataset.id, select.value);
   });
+
+  grid.addEventListener("click", (event) => {
+    const button = event.target.closest('[data-action="share"]');
+    if (button) openShare(button.closest(".book").dataset.id);
+  });
+
+  shareNote.addEventListener("input", renderShareNote);
+  copyButton.addEventListener("click", copyShareLink);
+  shareLink.addEventListener("focus", () => shareLink.select());
+
+  shareDialog.addEventListener("click", (event) => {
+    if (event.target.closest("[data-close]") || event.target === shareDialog) shareDialog.close();
+  });
+
+  shareDialog.addEventListener("close", resetCopyButton);
 
   addButton.addEventListener("click", () => {
     addForm.reset();
@@ -240,4 +354,5 @@
   });
 
   render();
+  highlightLinkedBook();
 })();

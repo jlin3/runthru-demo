@@ -80,6 +80,71 @@
       </form>
     </dialog>
 
+    <dialog class="dialog dialog--share" id="share-dialog" aria-labelledby="share-dialog-title">
+      <div class="share-layout">
+        <div class="share-stage">
+          <figure class="share-card" id="share-card" aria-label="Share card preview">
+            <div class="share-card-head">
+              <div class="cover" id="share-cover" aria-hidden="true">
+                <span class="cover-title"></span>
+                <span class="cover-author"></span>
+              </div>
+              <div class="share-card-meta">
+                <span class="share-card-status" id="share-card-status">Currently reading</span>
+                <strong class="share-card-title" id="share-card-title"></strong>
+                <span class="share-card-author" id="share-card-author"></span>
+              </div>
+            </div>
+            <blockquote class="share-card-note is-empty" id="share-card-note">Add a note and it will appear here.</blockquote>
+            <figcaption class="share-card-foot">
+              <span class="share-card-brand">
+                <svg viewBox="0 0 32 32" aria-hidden="true">
+                  <rect x="5" y="6" width="5" height="20" rx="1.5" />
+                  <rect x="12" y="9" width="5" height="17" rx="1.5" />
+                  <rect x="19.5" y="7" width="5" height="19.5" rx="1.5" transform="rotate(12 22 16.75)" />
+                  <rect x="3" y="26.5" width="26" height="2.5" rx="1.25" />
+                </svg>
+                Shelf
+              </span>
+              <span>From my reading list</span>
+            </figcaption>
+          </figure>
+        </div>
+
+        <form class="share-form" id="share-form">
+          <header class="dialog-header">
+            <h2 id="share-dialog-title">Share this book</h2>
+            <button type="button" class="icon-button" data-close aria-label="Close">
+              <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5 5l10 10M15 5L5 15" /></svg>
+            </button>
+          </header>
+          <p class="share-lede">Say why it is worth reading. The card updates as you type.</p>
+
+          <div class="field">
+            <div class="field-label-row">
+              <label for="share-note">Your note</label>
+              <span class="field-count" id="share-note-count" aria-hidden="true">0 / 140</span>
+            </div>
+            <textarea id="share-note" name="note" rows="4" maxlength="140"
+              placeholder="What stayed with you? Why should someone pick it up?"></textarea>
+          </div>
+
+          <div class="field">
+            <label for="share-link">Link</label>
+            <div class="link-row">
+              <input id="share-link" name="link" type="text" readonly />
+              <button type="button" class="button button--primary copy-button" id="copy-link">
+                <svg class="icon-copy" viewBox="0 0 20 20" aria-hidden="true"><rect x="7" y="7" width="9.5" height="9.5" rx="2" /><path d="M13 7V5a1.5 1.5 0 00-1.5-1.5h-6A1.5 1.5 0 004 5v6.5A1.5 1.5 0 005.5 13H7" /></svg>
+                <svg class="icon-check" viewBox="0 0 20 20" aria-hidden="true"><path d="M4.5 10.5l3.5 3.5 7.5-8" /></svg>
+                <span class="copy-label">Copy link</span>
+              </button>
+            </div>
+          </div>
+          <p class="copy-status" id="copy-status" role="status"></p>
+        </form>
+      </div>
+    </dialog>
+
     <script src="app.js"></script>
   </body>
 </html>
