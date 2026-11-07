@@ -10,7 +10,7 @@ Each open pull request in this repo adds one feature to Shelf, and each one has 
 
 ## Try RunThru on your own repo
 
-1. Install the [RunThru GitHub App](https://github.com/apps/runthru) on the repository.
+1. Install the [RunThru GitHub App](https://github.com/apps/runthru-video) on the repository.
 2. Open a pull request (or pick an existing one).
 3. Comment `/runthru` on the PR. RunThru opens the PR's preview, clicks through the change, and turns its comment into a narrated video with a verdict on whether the feature works.
 
