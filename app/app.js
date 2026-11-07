@@ -159,8 +159,17 @@
     return card;
   }
 
+  const sortSelect = document.getElementById("sort");
+  const byKey = {
+    added: () => 0,
+    title: (a, b) => a.title.localeCompare(b.title),
+    author: (a, b) => lastName(a.author).localeCompare(lastName(b.author)),
+  };
+  sortSelect.addEventListener("change", render);
+
   function render() {
-    grid.replaceChildren(...books.map(createCard));
+    const sorted = [...books].sort(byKey[sortSelect.value] || byKey.added);
+    grid.replaceChildren(...sorted.map(createCard));
     renderSummary();
   }
 
