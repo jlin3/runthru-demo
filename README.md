@@ -12,9 +12,9 @@ Each open pull request in this repo adds one feature to Shelf, and each one has 
 
 1. Install the [RunThru GitHub App](https://github.com/apps/runthru) on the repository.
 2. Open a pull request (or pick an existing one).
-3. Comment `/runthru` on the PR. RunThru builds the change, clicks through it, and replies with a video.
+3. Comment `/runthru` on the PR. RunThru opens the PR's preview, clicks through the change, and turns its comment into a narrated video with a verdict on whether the feature works.
 
-For a static site like this one, a two-line [`.runthru.yml`](.runthru.yml) tells RunThru which folder to serve.
+For a static site like this one, a two-line [`.runthru.yml`](.runthru.yml) tells RunThru which folder of the PR's commit to serve. Nothing is built or run. Apps with deploy previews (Vercel, Netlify, Render and others) need no config at all.
 
 ## Run Shelf locally
 
