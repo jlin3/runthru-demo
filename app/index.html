@@ -12,6 +12,17 @@
       rel="stylesheet"
     />
     <link rel="stylesheet" href="styles.css" />
+    <script>
+      // Apply the saved theme before first paint so the page never flashes the wrong colours.
+      (function () {
+        var pref = "system";
+        try {
+          pref = localStorage.getItem("shelf.theme") || "system";
+        } catch (e) {}
+        var dark = pref === "dark" || (pref !== "light" && matchMedia("(prefers-color-scheme: dark)").matches);
+        document.documentElement.dataset.theme = dark ? "dark" : "light";
+      })();
+    </script>
   </head>
   <body>
     <header class="app-header">
@@ -27,6 +38,21 @@
         </a>
 
         <div class="header-actions">
+          <div class="theme-toggle" id="theme-toggle" role="group" aria-label="Theme">
+            <span class="theme-thumb" aria-hidden="true"></span>
+            <button type="button" data-theme-choice="light" aria-pressed="false" aria-label="Light theme" title="Light">
+              <svg viewBox="0 0 20 20" aria-hidden="true">
+                <circle cx="10" cy="10" r="3.5" />
+                <path d="M10 2.5v1.8M10 15.7v1.8M2.5 10h1.8M15.7 10h1.8M4.7 4.7l1.3 1.3M14 14l1.3 1.3M4.7 15.3L6 14M14 6l1.3-1.3" />
+              </svg>
+            </button>
+            <button type="button" data-theme-choice="dark" aria-pressed="false" aria-label="Dark theme" title="Dark">
+              <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M16.2 12.4A6.5 6.5 0 017.6 3.8a6.5 6.5 0 108.6 8.6z" /></svg>
+            </button>
+            <button type="button" data-theme-choice="system" aria-pressed="false" aria-label="System theme" title="Match system">
+              <svg viewBox="0 0 20 20" aria-hidden="true"><rect x="3" y="4" width="14" height="9.5" rx="1.5" /><path d="M7.5 16.5h5M10 13.5v3" /></svg>
+            </button>
+          </div>
           <button type="button" class="button button--primary" id="add-book-button">
             <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 4v12M4 10h12" /></svg>
             Add book

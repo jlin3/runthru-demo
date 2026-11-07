@@ -30,8 +30,15 @@
   const addDialog = document.getElementById("add-dialog");
   const addForm = document.getElementById("add-form");
   const addError = document.getElementById("add-error");
+  const themeToggle = document.getElementById("theme-toggle");
+
+  const THEME_KEY = "shelf.theme";
+  const THEMES = ["light", "dark", "system"];
+  const systemDark = matchMedia("(prefers-color-scheme: dark)");
+  const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)");
 
   let books = loadBooks();
+  let themePref = loadThemePref();
 
   /* ---------- Storage ---------- */
 
@@ -54,6 +61,70 @@
     } catch {
       /* storage can be unavailable (private mode); the UI still works in memory */
     }
+  }
+
+  function loadThemePref() {
+    try {
+      const saved = localStorage.getItem(THEME_KEY);
+      return THEMES.includes(saved) ? saved : "system";
+    } catch {
+      return "system";
+    }
+  }
+
+  function saveThemePref(pref) {
+    try {
+      if (pref === "system") localStorage.removeItem(THEME_KEY);
+      else localStorage.setItem(THEME_KEY, pref);
+    } catch {
+      /* the choice still applies for this visit */
+    }
+  }
+
+  /* ---------- Theme ---------- */
+
+  function resolveTheme(pref) {
+    if (pref === "system") return systemDark.matches ? "dark" : "light";
+    return pref;
+  }
+
+  function renderThemeToggle() {
+    themeToggle.style.setProperty("--index", THEMES.indexOf(themePref));
+    for (const button of themeToggle.querySelectorAll("[data-theme-choice]")) {
+      button.setAttribute("aria-pressed", String(button.dataset.themeChoice === themePref));
+    }
+  }
+
+  // Switch colours. When triggered from the toggle, the new theme grows out of
+  // the clicked button as a circle; otherwise everything cross-fades.
+  function applyTheme(origin) {
+    const root = document.documentElement;
+    const next = resolveTheme(themePref);
+    renderThemeToggle();
+    if (root.dataset.theme === next) return;
+
+    const swap = () => {
+      root.dataset.theme = next;
+    };
+
+    if (origin && document.startViewTransition && !reducedMotion.matches) {
+      const rect = origin.getBoundingClientRect();
+      const x = rect.left + rect.width / 2;
+      const y = rect.top + rect.height / 2;
+      const radius = Math.hypot(Math.max(x, innerWidth - x), Math.max(y, innerHeight - y));
+      const transition = document.startViewTransition(swap);
+      transition.ready.then(() => {
+        root.animate(
+          { clipPath: [`circle(0px at ${x}px ${y}px)`, `circle(${radius}px at ${x}px ${y}px)`] },
+          { duration: 650, easing: "cubic-bezier(0.4, 0, 0.2, 1)", pseudoElement: "::view-transition-new(root)" }
+        );
+      });
+      return;
+    }
+
+    root.classList.add("theme-switching");
+    swap();
+    setTimeout(() => root.classList.remove("theme-switching"), 500);
   }
 
   /* ---------- Helpers ---------- */
@@ -211,6 +282,19 @@
     setStatus(select.closest(".book").dataset.id, select.value);
   });
 
+  themeToggle.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-theme-choice]");
+    if (!button || button.dataset.themeChoice === themePref) return;
+    themePref = button.dataset.themeChoice;
+    saveThemePref(themePref);
+    applyTheme(button);
+  });
+
+  // Follow the operating system live while "System" is selected.
+  systemDark.addEventListener("change", () => {
+    if (themePref === "system") applyTheme();
+  });
+
   addButton.addEventListener("click", () => {
     addForm.reset();
     addError.textContent = "";
@@ -239,5 +323,6 @@
     addDialog.close();
   });
 
+  applyTheme();
   render();
 })();
